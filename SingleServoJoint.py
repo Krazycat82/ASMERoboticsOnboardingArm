@@ -29,8 +29,8 @@ class SingleServoJoint:
 
     def move_to_angle(self, targetAngle):
 
-        if targetAngle < self.minAngle or targetAngle > self.maxAngle:
-            raise ValueError("Target angle is out of bounds")
+        #if targetAngle < self.minAngle or targetAngle > self.maxAngle:
+        #    raise ValueError("Target angle is out of bounds")
 
         targetAngle += self.angleShift # Adjust target angle by the angle shift
 

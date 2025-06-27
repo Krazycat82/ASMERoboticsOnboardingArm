@@ -35,8 +35,8 @@ class DoubleServoJoint:
 
     def move_to_angle(self, targetAngle):
 
-        if targetAngle < self.minAngle or targetAngle > self.maxAngle:
-            raise ValueError("Target angle is out of bounds")
+        #if targetAngle < self.minAngle or targetAngle > self.maxAngle:
+        #    raise ValueError("Target angle is out of bounds")
 
         targetAngleR = targetAngle + self.angleShiftR # Adjust target angle by the angle shift
         targetAngleL = self.angleShiftL - targetAngle # Adjust target angle by the angle shift

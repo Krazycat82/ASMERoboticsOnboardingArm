@@ -3,6 +3,7 @@ import math
 import random
 from SingleServoJoint import SingleServoJoint
 from DoubleServoJoint import DoubleServoJoint
+from sshkeyboard import listen_keyboard
 
 class FullArmControl:
     shoulderYaw = None
@@ -117,3 +118,86 @@ class FullArmControl:
             except ValueError as e:
                 print(f"Error: {e}. Position out of reach. Retrying...")
                 continue
+
+    def manualControl(self):
+        print("Manual XYZ control mode. Type 'exit' to quit.")
+        while True:
+            try:
+                user_input = input("Enter target x y z (space-separated): ")
+                if user_input.strip().lower() == 'exit':
+                    break
+                x_str, y_str, z_str = user_input.strip().split()
+                x = float(x_str)
+                y = float(y_str)
+                z = float(z_str)
+                self.moveToPosition(x, y, z)
+                print(f"Moved to position: x={x}, y={y}, z={z}")
+            except ValueError as e:
+                print(f"Invalid input or error: {e}")
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+
+    def keyControl(self):
+        """
+        Control the arm using keys:
+        - R/F: Increase/decrease Z (height)
+        - A/D: Move X/Y in a circular direction
+        - W/S: Increase/decrease radius (distance from base)
+        - Q: Quit
+        """
+        #try:
+        #except ImportError:
+        #    print("The 'sshkeyboard' module is required for key control. Install it with 'pip install sshkeyboard'.")
+        #    return
+
+        print("Key control mode. Use R/F for Z, A/D for angle, W/S for radius, Q to quit.")
+
+        # Initial position
+        state = {'x': 0.0, 'y': 100.0, 'z': 0.0, 'running': True}
+        step = 10.0  # mm per key press
+        angle_step = math.radians(5)  # radians per a/d
+
+        def press(key):
+            if not state['running']:
+                return
+            x, y, z = state['x'], state['y'], state['z']
+            if key == 'r':
+                z += step
+            elif key == 'f':
+                z -= step
+            elif key == 'a':
+                angle = math.atan2(y, x) + angle_step
+                radius = math.hypot(x, y)
+                x = radius * math.cos(angle)
+                y = radius * math.sin(angle)
+            elif key == 'd':
+                angle = math.atan2(y, x) - angle_step
+                radius = math.hypot(x, y)
+                x = radius * math.cos(angle)
+                y = radius * math.sin(angle)
+            elif key == 'w':
+                radius = math.hypot(x, y) + step
+                angle = math.atan2(y, x)
+                x = radius * math.cos(angle)
+                y = radius * math.sin(angle)
+            elif key == 's':
+                radius = max(0, math.hypot(x, y) - step)
+                angle = math.atan2(y, x)
+                x = radius * math.cos(angle)
+                y = radius * math.sin(angle)
+            elif key == 'q':
+                print("Exiting key control.")
+                state['running'] = False
+                return
+            else:
+                return
+
+            state['x'], state['y'], state['z'] = x, y, z
+            print(f"Current position: x={x:.1f}, y={y:.1f}, z={z:.1f}")
+            try:
+                self.moveToPosition(x, y, z)
+            except ValueError as e:
+                print(f"Error: {e}")
+
+        print(f"Current position: x={state['x']:.1f}, y={state['y']:.1f}, z={state['z']:.1f}")
+        listen_keyboard(on_press=press, until="q")
