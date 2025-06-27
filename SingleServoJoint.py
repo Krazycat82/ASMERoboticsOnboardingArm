@@ -35,8 +35,14 @@ class SingleServoJoint:
         targetAngle += self.angleShift # Adjust target angle by the angle shift
 
         duty_cycle = 2 + (targetAngle / 18)  # Convert angle to duty cycle
-        print(duty_cycle)
+        #print(duty_cycle)
         self.servo.ChangeDutyCycle(duty_cycle)
+
+    def getMinAngle(self):
+        return self.minAngle
+    
+    def getMaxAngle(self):
+        return self.maxAngle
        
     def stop(self):
         self.servo.ChangeDutyCycle(0)

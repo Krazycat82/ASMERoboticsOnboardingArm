@@ -47,6 +47,11 @@ class DoubleServoJoint:
         self.servoR.ChangeDutyCycle(duty_cycleR)
         self.servoL.ChangeDutyCycle(duty_cycleL)
 
+    def getMinAngle(self):
+        return self.minAngle    
+    
+    def getMaxAngle(self):
+        return self.maxAngle
        
     def stop(self):
         self.servoL.ChangeDutyCycle(0)

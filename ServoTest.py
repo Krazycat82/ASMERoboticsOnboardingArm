@@ -22,5 +22,5 @@ try:
     print("Ending")
 finally:
     # Cleanup
-    #pwm.ChangeDutyCycle(0)
+    pwm.ChangeDutyCycle(0)
     pwm.stop()
