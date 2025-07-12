@@ -23,8 +23,8 @@ class FullArmControl:
     def __init__(self, shoulderYawPin, shoulderPitchPinL, shoulderPitchPinR, forearmPin, wristPin, grabberPin):
         self.shoulderYaw = SingleServoJoint(shoulderYawPin, -90, 90, 90)
         self.shoulderPitch = DoubleServoJoint(shoulderPitchPinL, shoulderPitchPinR, 0, 180, 180, 0)
-        self.forearm = SingleServoJoint(forearmPin, -90, 90, 110)
-        self.wrist = SingleServoJoint(wristPin, -90, 90, 110)
+        self.forearm = SingleServoJoint(forearmPin, -90, 110, 90)
+        self.wrist = SingleServoJoint(wristPin, -90, 90, 90)
         self.grabber = SingleServoJoint(grabberPin, 0, 90, 30)
 
     def zero(self):
@@ -52,7 +52,7 @@ class FullArmControl:
 
         print("All servos moved to zero position")
         #input("Press Enter to stop the servos...")
-        self.stop()
+        #self.stop()
 
     def stop(self):
         self.shoulderYaw.stop()
@@ -65,15 +65,22 @@ class FullArmControl:
     def calcAngles(self, radius, height):
         # Calculate the angles for the shoulder and forearm servos based on x and y coordinates
         hypotenuse = math.sqrt(radius**2 + height**2)
-        if hypotenuse > self.upperArmLength + self.forearmLength:
-            raise ValueError("Target position is out of reach")
+        if hypotenuse > self.upperArmLength + self.forearmLength + 0.1:  # Adding a small tolerance to avoid floating point issues
+            # If the target position is out of reach, raise an error:
+           # print(f"Target position: radius={radius}, height={height}, hypotenuse={hypotenuse}, length={self.upperArmLength + self.forearmLength}")
+            raise ValueError("Target position is out of reach, desired reach is too far.")
         
         #print(f"Value: {2 * self.upperArmLength * self.forearmLength}")
-        
-        self.forearmInnerAngle = math.acos((self.upperArmLength**2 + self.forearmLength**2 - hypotenuse**2) / (2 * self.upperArmLength * self.forearmLength))
-        self.forearmAngle =  math.degrees(self.forearmInnerAngle)
+        #print(f"FIA Equation piece: {self.upperArmLength**2 + self.forearmLength**2 - hypotenuse**2} / {2 * self.upperArmLength * self.forearmLength}")
+        if abs((self.upperArmLength**2 + self.forearmLength**2 - hypotenuse**2) / (2 * self.upperArmLength * self.forearmLength)) < 1.0:
+            self.forearmInnerAngle = math.acos((self.upperArmLength**2 + self.forearmLength**2 - hypotenuse**2) / (2 * self.upperArmLength * self.forearmLength))
+        elif abs((self.upperArmLength**2 + self.forearmLength**2 - hypotenuse**2) / (2 * self.upperArmLength * self.forearmLength)) < 1.001:
+            self.forearmInnerAngle = math.acos(-1.0)
+        self.forearmAngle =  180 - math.degrees(self.forearmInnerAngle)
 
-        self.shoulderPitchAngle = math.asin((self.forearmLength / hypotenuse) * math.sin(math.radians(self.forearmAngle))) + math.asin(height / hypotenuse) 
+        #print(f"Calculated forearm inner angle: {math.degrees(self.forearmInnerAngle)} degrees")
+
+        self.shoulderPitchAngle = math.asin((self.forearmLength / hypotenuse) * math.sin(self.forearmInnerAngle)) + math.asin(height / hypotenuse) 
         self.shoulderPitchAngle = math.degrees(self.shoulderPitchAngle)
 
         self.wristAngle = self.forearmAngle - self.shoulderPitchAngle
@@ -81,15 +88,19 @@ class FullArmControl:
 
     def moveToPosition(self, x, y, z):
         # Calculate the radius and height from the target position
+        print("Entered moveToPosition")
         radius = math.sqrt(x**2 + y**2)
+        print("calced radius")
         height = z
+        print(f"Moving to position: x={x}, y={y}, z={z}, radius={radius}, height={height}")
+
 
         # Calculate the angles for the shoulder and forearm servos
         self.calcAngles(radius, height)
 
         # Move the servos to the calculated angles
         if self.shoulderPitchAngle > self.shoulderPitch.getMinAngle() and self.shoulderPitchAngle < self.shoulderPitch.getMaxAngle() and self.shoulderYawAngle > self.shoulderYaw.getMinAngle() and self.shoulderYawAngle < self.shoulderYaw.getMaxAngle() and self.forearmAngle > self.forearm.getMinAngle() and self.forearmAngle < self.forearm.getMaxAngle() and self.wristAngle > self.wrist.getMinAngle() and self.wristAngle < self.wrist.getMaxAngle():
-            self.shoulderYaw.move_to_angle(math.degrees(math.atan2(y, x)))
+            self.shoulderYaw.move_to_angle(math.degrees(math.atan2(x, y)))
             self.shoulderPitch.move_to_angle(self.shoulderPitchAngle)
             self.forearm.move_to_angle(self.forearmAngle)
             self.wrist.move_to_angle(self.wristAngle)
@@ -153,51 +164,55 @@ class FullArmControl:
         print("Key control mode. Use R/F for Z, A/D for angle, W/S for radius, Q to quit.")
 
         # Initial position
-        state = {'x': 0.0, 'y': 100.0, 'z': 0.0, 'running': True}
-        step = 10.0  # mm per key press
-        angle_step = math.radians(5)  # radians per a/d
+        state = {'x': 0.0, 'y': 400.0, 'z': 0.0, 'running': True}
+        step = 20.0  # mm per key press
+        angle_step = math.radians(10)  # radians per a/d
 
         def press(key):
+            print(f"\nKey pressed: {key}")
             if not state['running']:
                 return
             x, y, z = state['x'], state['y'], state['z']
+            print(f"Original position: x={state['x']:.1f}, y={state['y']:.1f}, z={state['z']:.1f}")
+            angle = math.atan2(x, y)  # Current angle in radians
+            radius = math.hypot(x, y)
+            print(f"Original radius: {radius:.1f} mm, Angle: {math.degrees(angle):.1f}°, Height (z): {z:.1f} mm\n")
+
             if key == 'r':
                 z += step
             elif key == 'f':
                 z -= step
             elif key == 'a':
-                angle = math.atan2(y, x) + angle_step
-                radius = math.hypot(x, y)
-                x = radius * math.cos(angle)
-                y = radius * math.sin(angle)
+                angle = angle + angle_step
             elif key == 'd':
-                angle = math.atan2(y, x) - angle_step
-                radius = math.hypot(x, y)
-                x = radius * math.cos(angle)
-                y = radius * math.sin(angle)
+                angle = angle - angle_step
             elif key == 'w':
-                radius = math.hypot(x, y) + step
-                angle = math.atan2(y, x)
-                x = radius * math.cos(angle)
-                y = radius * math.sin(angle)
+                radius = radius + step
             elif key == 's':
-                radius = max(0, math.hypot(x, y) - step)
-                angle = math.atan2(y, x)
-                x = radius * math.cos(angle)
-                y = radius * math.sin(angle)
+                radius = max(0, radius - step)
             elif key == 'q':
                 print("Exiting key control.")
                 state['running'] = False
+                self.stop()
                 return
             else:
                 return
+            
+            x = radius * math.sin(angle)
+            y = radius * math.cos(angle)
 
             state['x'], state['y'], state['z'] = x, y, z
-            print(f"Current position: x={x:.1f}, y={y:.1f}, z={z:.1f}")
+            print(f"Changed position: x={state['x']:.1f}, y={state['y']:.1f}, z={state['z']:.1f}")
+
+            radius = math.hypot(x, y)
+            angle = math.degrees(math.atan2(x, y))
+            print(f"Changed radius: {radius:.1f} mm, Angle: {angle:.1f}°, Height (z): {z:.1f} mm\n")
+
             try:
                 self.moveToPosition(x, y, z)
             except ValueError as e:
                 print(f"Error: {e}")
+
 
         print(f"Current position: x={state['x']:.1f}, y={state['y']:.1f}, z={state['z']:.1f}")
         listen_keyboard(on_press=press, until="q")
