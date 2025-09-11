@@ -130,6 +130,8 @@ class FullArmControl:
                 print(f"Error: {e}. Position out of reach. Retrying...")
                 continue
 
+        self.stop()
+
     def manualControl(self):
         print("Manual XYZ control mode. Type 'exit' to quit.")
         while True:
@@ -156,17 +158,13 @@ class FullArmControl:
         - W/S: Increase/decrease radius (distance from base)
         - Q: Quit
         """
-        #try:
-        #except ImportError:
-        #    print("The 'sshkeyboard' module is required for key control. Install it with 'pip install sshkeyboard'.")
-        #    return
 
         print("Key control mode. Use R/F for Z, A/D for angle, W/S for radius, Q to quit.")
 
         # Initial position
-        state = {'x': 0.0, 'y': 400.0, 'z': 0.0, 'running': True}
+        state = {'x': 0.0, 'y': 400.0, 'z': 0.0, 'grabbing': False, 'running': True}
         step = 20.0  # mm per key press
-        angle_step = math.radians(10)  # radians per a/d
+        angle_step = math.radians(5)  # radians per a/d
 
         def press(key):
             print(f"\nKey pressed: {key}")
@@ -195,6 +193,15 @@ class FullArmControl:
                 state['running'] = False
                 self.stop()
                 return
+            elif key == 'space':
+                if state['grabbing'] == True:
+                    self.grabber.move_to_angle(self.grabber.getMaxAngle())
+                    state['grabbing'] = False
+                else:
+                    self.grabber.move_to_angle(self.grabber.getMinAngle())
+                    state['grabbing'] = True
+
+                print("Grabbing: ", state['grabbing'])
             else:
                 return
             
@@ -216,3 +223,5 @@ class FullArmControl:
 
         print(f"Current position: x={state['x']:.1f}, y={state['y']:.1f}, z={state['z']:.1f}")
         listen_keyboard(on_press=press, until="q")
+
+        self.stop()
