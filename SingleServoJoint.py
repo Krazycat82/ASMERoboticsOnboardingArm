@@ -1,6 +1,6 @@
 import time
 
-import RPi.GPIO as GPIO
+# import RPi.GPIO as GPIO
 from pigpioFolder import pigpio
 
 class SingleServoJoint:
