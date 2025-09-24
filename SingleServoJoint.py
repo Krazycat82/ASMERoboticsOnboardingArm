@@ -17,12 +17,6 @@ class SingleServoJoint:
         self.maxAngle = maxAngle
         self.servoPin = servoPin
 
-        #GPIO.setmode(GPIO.BCM)
-        #GPIO.setup(servoPin, GPIO.OUT)
-
-        #self.servo = GPIO.PWM(servoPin, 50)  # 50Hz frequency
-        #self.servo.start(0)
-
         self.servo = pigpio.pi()
         self.servo.set_mode(self.servoPin, pigpio.OUTPUT)
 
@@ -33,14 +27,8 @@ class SingleServoJoint:
 
     def move_to_angle(self, targetAngle):
 
-        #if targetAngle < self.minAngle or targetAngle > self.maxAngle:
-        #    raise ValueError("Target angle is out of bounds")
-
         targetAngle += self.angleShift # Adjust target angle by the angle shift
 
-        #duty_cycle = 2 + (targetAngle / 18)  # Convert angle to duty cycle
-        #print(duty_cycle)
-        #self.servo.ChangeDutyCycle(duty_cycle)
         pulse_width = int(500 + (targetAngle / 180.0) * 2000)  # Map 0-180 degrees to 500-2500us
 
         if (pulse_width < 2500 and pulse_width > 500): 

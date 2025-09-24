@@ -1,8 +1,8 @@
-import time
+import time # import is used to import modules
 import math
 import random
-from SingleServoJoint import SingleServoJoint
-from DoubleServoJoint import DoubleServoJoint
+from SingleServoJoint import SingleServoJoint # can also be used with files we create
+from DoubleServoJoint import DoubleServoJoint # from allows us to import specific classes or functions from a module
 from sshkeyboard import listen_keyboard
 
 class FullArmControl:
@@ -99,7 +99,14 @@ class FullArmControl:
         self.calcAngles(radius, height)
 
         # Move the servos to the calculated angles
-        if self.shoulderPitchAngle > self.shoulderPitch.getMinAngle() and self.shoulderPitchAngle < self.shoulderPitch.getMaxAngle() and self.shoulderYawAngle > self.shoulderYaw.getMinAngle() and self.shoulderYawAngle < self.shoulderYaw.getMaxAngle() and self.forearmAngle > self.forearm.getMinAngle() and self.forearmAngle < self.forearm.getMaxAngle() and self.wristAngle > self.wrist.getMinAngle() and self.wristAngle < self.wrist.getMaxAngle():
+        if self.shoulderPitchAngle > self.shoulderPitch.getMinAngle() and \
+           self.shoulderPitchAngle < self.shoulderPitch.getMaxAngle() and \
+           self.shoulderYawAngle > self.shoulderYaw.getMinAngle() and \
+           self.shoulderYawAngle < self.shoulderYaw.getMaxAngle() and \
+           self.forearmAngle > self.forearm.getMinAngle() and \
+           self.forearmAngle < self.forearm.getMaxAngle() and \
+           self.wristAngle > self.wrist.getMinAngle() and \
+           self.wristAngle < self.wrist.getMaxAngle():
             self.shoulderYaw.move_to_angle(math.degrees(math.atan2(x, y)))
             self.shoulderPitch.move_to_angle(self.shoulderPitchAngle)
             self.forearm.move_to_angle(self.forearmAngle)
